@@ -1,0 +1,55 @@
+# Ignore build directories
+build/
+Build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Ignore Visual Studio files
+*.sln
+*.vcxproj*
+*.user
+*.obj
+*.pdb
+*.idb
+*.ilk
+*.log
+
+# Ignore macOS/Linux OS files
+.DS_Store
+*.swp
+*~
+
+# Ignore executable and binary files
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Ignore generated folders/files
+bin/
+lib/
+*.o
+
+# Ignore code blocks or IDE specific
+*.depend
+*.layout
+*.cbp
+
+# Ignore temporary files
+*.tmp
+*.bak
+
+# Ignore generated image caches or output
+*.png
+*.jpg
+*.bmp
+*.tga
+
+# Ignore VS Code settings (optional)
+.vscode/
