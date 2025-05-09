@@ -1,5 +1,5 @@
 #define CVUI_IMPLEMENTATION
-#include "Forklift.h"
+#include "CForklift.h"
 #include "UdpFeedSender.h"
 
 
@@ -92,20 +92,23 @@ void CForklift::handleCommands()
 /* ───────────── update ───────────── */
 void CForklift::update()
 {
-    if (_exit) return;
+    if (_exit) 
+        return;
 
-    /* camera -> feed */
-    if (_cap.isOpened()) _cap.read(_frame);
+    // camera -> feed 
+ 
     if (!_frame.empty())
     {
-        cv::Mat small; cv::resize(_frame, small, FEED_SIZE);
+        _cam.capture(_frame);
+        cv::Mat small; 
+        cv::resize(_frame, small, FEED_SIZE);
         _srvFeed.set_txim(small);
         //udp.send(_frame);
     }
 
     handleCommands();
 
-    /* stop motors if no client for 3 s in manual */
+    // stop motors if no client for 3 s in manual 
     if (!_autoMode && _clientSeen && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - _lastCmdT).count() > 3)
     {
         _drive.stop();
