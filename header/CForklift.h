@@ -33,7 +33,7 @@ public:
     void update() override;
     void draw()   override;
 
-    double _speed = 150;          // current GUI value
+    double _speed = 255;          // current GUI value
 
 private:
     /* networking */

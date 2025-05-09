@@ -3,14 +3,14 @@
 #define MOTORRAMP 15
 #define MAXDUTY 255
 #define TARGETPWM 49
-#define AIN1 21
-#define AIN2 20
-#define PWMA 25
-#define BIN1 7
-#define BIN2 8
-#define PWMB 16
-#define STBY 12
-#define DUTY 150
+#define AIN1 4
+#define AIN2 3
+#define PWMA 2
+#define BIN1 27
+#define BIN2 22
+#define PWMB 10
+#define STBY 17
+#define DUTY 255
 
 MotorDriver::MotorDriver()
 {
@@ -35,11 +35,17 @@ void MotorDriver::prime()
 
 
 void MotorDriver::setLeft (bool fwd)
-{ gpioWrite(AIN1,fwd); gpioWrite(AIN2,!fwd); }
+{ 
+    gpioWrite(AIN1,fwd); 
+    gpioWrite(AIN2,!fwd); 
+}
 
 
 void MotorDriver::setRight(bool fwd)
-{ gpioWrite(BIN1,fwd); gpioWrite(BIN2,!fwd); }
+{ 
+    gpioWrite(BIN1,fwd); 
+    gpioWrite(BIN2,!fwd); 
+}
 
 
 void MotorDriver::setSpeed(int duty)

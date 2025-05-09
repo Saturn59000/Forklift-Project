@@ -114,6 +114,20 @@ void CForklift::update()
     static int frameCtr = 0;
     if (++frameCtr % 2 == 0) _drive.tick();   // tick every 2nd frame
 
+    if (_autoMode)
+    {
+
+
+
+
+
+
+
+
+
+
+        
+    }
 }
 
 
