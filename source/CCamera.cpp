@@ -1,5 +1,7 @@
 #include "CCamera.h"
 
+CCamera::CCamera(){};
+
 CCamera::~CCamera()
 {
     close();
@@ -19,7 +21,7 @@ void CCamera::close()
         _vid.release();
     }
 }
-void CCamera::capture(cv::Mat &frame;)
+void CCamera::capture(cv::Mat &frame)
 {
     if (_vid.isOpened() == true)
     {

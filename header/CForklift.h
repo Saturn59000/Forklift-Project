@@ -2,6 +2,8 @@
 
 #include "server.h"
 #include "cvui.h"
+#include "CCamera.h"
+#include "CAruco.h"
 #include <pigpio.h>
 #include <deque>
 #include <chrono>

@@ -14,4 +14,4 @@ class CCamera
     void open(int camID);
     void close();
     void capture(cv::Mat &frame);
-}
+};

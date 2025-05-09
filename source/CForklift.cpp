@@ -19,8 +19,6 @@ CForklift::CForklift()
         throw std::runtime_error("pigpio init failed");
     }
 
-    _cap.open(0);
-
     gpioSetMode(_servoGpio, PI_OUTPUT);
     gpioServo(_servoGpio, _pulseDown);   // start in “Down” position
 
@@ -28,13 +26,11 @@ CForklift::CForklift()
     std::thread([&]{ _srvCmd .start(PORT_CMD ); }).detach();
 }
 
-
 CForklift::~CForklift()
 {
     _drive.stop();
     _srvFeed.stop();
     _srvCmd.stop();
-    if (_cap.isOpened()) _cap.release();
     cv::destroyAllWindows();
     gpioTerminate();
     gpioServo(_servoGpio, 0);   // turn PWM off
