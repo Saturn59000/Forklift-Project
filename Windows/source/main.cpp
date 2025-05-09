@@ -16,14 +16,16 @@
 #include <windows.h>
 #include <sstream>
 
+//Pi, window, and port settings
 
- /* ------------ Settings ------------ */
-static const char* PI_IP = "10.0.0.91";
-static const int   PORT_CMD = 4620;
-static const int   PORT_FEED = 4618;
-static const int   IMG_W = 320, IMG_H = 240;
+#define PI_IP "192.168.137.107"
+#define PORT_CMD 4620
+#define PORT_FEED 4618
+#define IMG_W 320
+#define IMG_H 240
+#define BTN_W 120
+#define BTN_H 30
 #define WINDOW_NAME "Forklift Client (KB + GUI)"
-
 
 /* ------------ Feed thread ------------ */
 void feedThread (CClient& cli, std::atomic<bool>& stop, cv::Mat& shared, std::mutex& mtx)
@@ -88,8 +90,15 @@ int main()
         }
         if (cvui::button(ui, 160, 60, 120, 30, "Disconnect") && connected)
         {
-            if (feedRunning) { stopFeed = true; feedT.join(); feedRunning = false; }
-            cmdCli.close_socket(); feedCli.close_socket(); connected = false;
+            if (feedRunning) 
+            { 
+                stopFeed = true; 
+                feedT.join(); 
+                feedRunning = false; 
+            }
+            cmdCli.close_socket();
+            feedCli.close_socket(); 
+            connected = false;
         }
 
         /* ------------------------ Drive + STOP buttons ------------------------ */
@@ -191,7 +200,7 @@ int main()
         }
 
         /* --- Mode buttons --- */
-        y0 = 305; const int BTN_W = 120, BTN_H = 30;
+        y0 = 305; 
         int activeX = modeAuto ? 20 : 160;
         cv::rectangle(ui, cv::Rect(activeX - 2, y0 - 2, BTN_W + 4, BTN_H + 4), { 0,100,0 }, cv::FILLED);
         if (cvui::button(ui, 20, y0, BTN_W, BTN_H, "Auto Mode"))   modeAuto = true;
@@ -258,10 +267,18 @@ int main()
                 {
                     switch (dir)
                     {
-                    case 1: cmdCli.tx_str("UP\n");    flash["UP"] = Clock::now(); break;
-                    case 2: cmdCli.tx_str("DOWN\n");  flash["DOWN"] = Clock::now(); break;
-                    case 3: cmdCli.tx_str("LEFT\n");  flash["LEFT"] = Clock::now(); break;
-                    case 4: cmdCli.tx_str("RIGHT\n"); flash["RIGHT"] = Clock::now(); break;
+                    case 1: cmdCli.tx_str("UP\n");    
+                            flash["UP"] = Clock::now(); 
+                            break;
+                    case 2: cmdCli.tx_str("DOWN\n");  
+                            flash["DOWN"] = Clock::now(); 
+                            break;
+                    case 3: cmdCli.tx_str("LEFT\n"); 
+                            flash["LEFT"] = Clock::now(); 
+                            break;
+                    case 4: cmdCli.tx_str("RIGHT\n"); 
+                            flash["RIGHT"] = Clock::now(); 
+                            break;
                     default:
                         if (!stopSent)
                         {
@@ -304,7 +321,12 @@ int main()
         if (k == 27) quit = true;  // Esc quits
     }
 
-    if (feedRunning) { stopFeed = true; feedT.join(); }
-    cmdCli.close_socket(); feedCli.close_socket();
+    if (feedRunning) 
+    {
+        stopFeed = true; 
+        feedT.join(); 
+    }
+    cmdCli.close_socket(); 
+    feedCli.close_socket();
     return 0;
 }

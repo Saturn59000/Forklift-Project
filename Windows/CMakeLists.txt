@@ -16,8 +16,7 @@ include_directories("./header")
 # Gather source files from multiple folders
 file(GLOB SOURCES
     "${CMAKE_SOURCE_DIR}/source/*.cpp"
-    "${CMAKE_SOURCE_DIR}/headers/*.cpp"
-    "${CMAKE_SOURCE_DIR}/include/*.cpp"
+
 )
 
 # Create the executable
