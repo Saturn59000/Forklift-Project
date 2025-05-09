@@ -1,83 +1,130 @@
 #include "CControlPi.h"
 
 
-CControlPi::CControlPi() {}
-
-
-CControlPi::~CControlPi() {}
-
-
-bool CControlPi::get_data(int channel, int& result)
+CControlPi::CControlPi()
 {
-    gpioSetMode(channel, PI_INPUT);
-    result = gpioRead(channel);
-    return 1;
+    _program_init = true;
+    _comm_failed = false;
+    gpioInitialise();
+
+    _last_button1_state = 1;
+    _last_button2_state = 1;
+    _start_time1 = 0;
+    _start_time2 = 0;
 }
 
-
-bool CControlPi::set_data(int channel, int val)
+CControlPi::~CControlPi()
 {
-    gpioSetMode(channel, PI_OUTPUT);
-    gpioWrite(channel, val);
-    return 1;
+
+    set_data(DIGITAL, BLUE_LED_CH, 0);
+    set_data(DIGITAL, GREEN_LED_CH, 0);
+    set_data(DIGITAL, RED_LED_CH, 0);
+
+    gpioTerminate();
+
 }
 
-
-double CControlPi::get_analog(int channel)
+bool CControlPi::get_data(int type, int channel, int& result)
 {
-    int read_val;
-    unsigned char inBuf[3];
-    char cmd[] = { 1, channel, 0 };
+    if (gpioInitialise() < 1)
+        return 1;
 
-    int handle = spiOpen(0, 200000, 3); // Open SPI channel 0 with 200kHz speed
-
-    spiXfer(handle, cmd, (char*) inBuf, 3); // Transfer 3 bytes
-    read_val = ((inBuf[1] & 3) << 8) | inBuf[2]; // Format 10 bits
-
-    spiClose(handle);
-
-    return read_val;
-}
-
-
-int CControlPi::get_button(int channel)
-{
     gpioSetMode(channel, PI_INPUT);
 
-    static int Intial_State = 1;
-    int Current_State;
-    int Not_Pushed = 1; //pull-up resister
-    int Pushed = 0;
+    if (type == DIGITAL)
+    {
+        result = gpioRead(channel);
+        return true;
+    }
+    else if (type == ANALOG)
+    {
+        int read_val;
+        unsigned char inBuf[3];
+        char cmd[] = {1, 8 + channel << 4, 0}; //0b1XXX0000 where XXX = channel 0
 
-    static double Start_Tic = cv::getTickCount();
+        int handle = spiOpen(0, 200000, 3);
 
-    Current_State = gpioRead(channel);
+        spiXfer(handle, cmd, (char*) inBuf, 3);
+        read_val = ((inBuf[1] & 3) << 8) | inBuf[2];
 
-    if ((Intial_State == Not_Pushed) && (Current_State == Pushed) && ((cv::getTickCount() - Start_Tic) / cv::getTickFrequency() > 0.2)) //wait 200ms
-      {
-      Start_Tic = cv::getTickCount();
-      Intial_State = Pushed;
-      return Pushed;
-      }
-   else
-      {
-      Intial_State = Current_State;
-      return Not_Pushed;
-      }
+        spiClose(handle);
+
+        if (read_val - ADC_OFFSET< 0)
+            result = 0;
+        else
+            result = read_val - ADC_OFFSET; //STE
+
+        return true;
+    }
+    else if (type == SERVO)
+    {
+        //return last position
+        return true;
+    }
+    else
+        return false;
 }
 
-
-int CControlPi::get_servo(int channel, int& position)
+bool CControlPi::set_data(int type, int channel, int val)
 {
-    position = gpioGetServoPulsewidth(channel); // Read servo pulse width
+    if (gpioInitialise() < 0)
+        return 1;
 
-    return 1; // Success
-}
-
-
-bool CControlPi::set_servo(int channel, int val)
-{
     gpioSetMode(channel, PI_OUTPUT);
-    gpioServo(channel, val);
-    return 1;
+    if (type == DIGITAL)
+    {
+        gpioWrite(channel, val);
+        return true;
+    }
+    else if (type == ANALOG)
+    {
+        //no set analog
+        return true;
+    }
+    else if (type == SERVO)
+    {
+        int convert_us = val *(2000/180) + 500;
+        gpioServo(channel, convert_us);
+        return true;
+    }
+    else
+        return false;
+}
+
+float CControlPi::get_analog(int channel)
+{
+    int result;
+
+    get_data(ANALOG, channel, result);
+
+    float result_percent = (static_cast <float>(result) / (ADC_MAX)) * PERCENT;
+
+
+    return result_percent;
+
+
+    return 0;
+}
+
+bool CControlPi::get_button(int channel)
+{
+    int button_value;
+    float current_time;
+
+    get_data(DIGITAL, channel, button_value);
+
+    if ((button_value != _last_button1_state) && _start_time1 == 0)
+        _start_time1 = cv::getTickCount() / cv::getTickFrequency();
+
+    _last_button1_state = button_value;
+
+    current_time = cv::getTickCount() / cv::getTickFrequency();
+
+    if ((current_time - _start_time1 >= DEBOUNCE) && button_value == 1)
+    {
+        _start_time1 = 0;
+        return true;
+    }
+
+    return false;
 }

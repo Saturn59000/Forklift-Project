@@ -18,7 +18,7 @@
 
 //Pi, window, and port settings
 
-#define PI_IP "192.168.137.107"
+#define PI_IP "192.168.137.32"
 #define PORT_CMD 4620
 #define PORT_FEED 4618
 #define IMG_W 320
