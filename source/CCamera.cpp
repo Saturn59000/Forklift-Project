@@ -8,8 +8,7 @@ CCamera::~CCamera()
 }
 void CCamera::open(int camID)
 {
-    std::string pipeline = "libcamerasrc ! video/x-raw,width=640,height=480,framerate=30/1 ! videoconvert ! appsink";
-    _vid.open(pipeline, cv::CAP_GSTREAMER);
+    _vid.open(0);
     
     if (!_vid.isOpened())
     {

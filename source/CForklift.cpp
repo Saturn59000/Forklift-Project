@@ -18,7 +18,9 @@ CForklift::CForklift()
     {
         throw std::runtime_error("pigpio init failed");
     }
-
+    
+    _vid.open(0);
+    
     gpioSetMode(_servoGpio, PI_OUTPUT);
     gpioServo(_servoGpio, _pulseDown);   // start in “Down” position
 
@@ -92,10 +94,12 @@ void CForklift::update()
         return;
 
     // camera -> feed 
- 
+    if(_vid.isOpened())
+        _vid >> _frame;
+    
+    
     if (!_frame.empty())
     {
-        _cam.capture(_frame);
         cv::Mat small; 
         cv::resize(_frame, small, FEED_SIZE);
         _srvFeed.set_txim(small);

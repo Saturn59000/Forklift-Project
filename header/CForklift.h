@@ -46,7 +46,8 @@ private:
     unsigned _pulseDown = 1300;        // µs for “Down”
 
     /* vision */
-    CCamera _cam;
+    //CCamera _cam;
+    cv::VideoCapture _vid;
     cv::Mat _frame;
 
     /* control */
