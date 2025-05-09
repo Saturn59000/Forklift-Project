@@ -1,80 +1,147 @@
 #pragma once
 
-#include "pigpio.h"
-#include <opencv2/opencv.hpp>
-#include <sstream>
 #include <string>
-#include <iostream>
-#include <unistd.h>
+#include <opencv2/opencv.hpp>
+#include "pigpio.h"
+
+#define BAUD_RATE 115200
+#define TX_BUF 2
+#define BUFFLEN 1
+#define TIMEOUT 1.0
+#define SUBSTR_INDEX 1
+#define ADC_MAX 1024
+#define ADC_OFFSET 128
+#define PERCENT 100
+#define JOYX 0
+#define JOYY 1
+#define BUTTON1 19
+#define BUTTON2 13
+#define DEBOUNCE 0.150
+#define INIT 0x1234567
+#define SERVO_MAX 180
+#define SERVO_MIN 1
+#define SERVO_1 0
+#define TEXT_READ_DELAY 1500
+#define BLUE_LED_CH 37
+#define RED_LED_CH 39
+#define GREEN_LED_CH 38
+#undef ERR
+#define ERR -1
+
+#undef DIGITAL
+#undef ANALOG
+#undef SERVO
+
+#define DIGITAL 0
+#define ANALOG 1
+#define SERVO 2
+
 
 /**
 *
-* @brief The C++ object used for communication with the embedded system
+* @brief Communicates with the microcontroller over com port
 *
-* This class sends given values on a selected com port
+* This class is meant to provide an interface between the program and
+* the microcontroller
 *
-* @author Kaveh A.
-*
+* @author Derek Wilson
 */
+
 class CControlPi
-   {
-   public:
-      CControlPi();
-      ~CControlPi();
+{
+private:
+    bool _program_init; ///< Is true if it is the very first time init_com is called
+    bool _comm_failed;
 
-      /** @brief It storts received data from comport in &result
-      *
-      * @param type Whether the type of received data is analog or digital
-      * @param channel The channel for receiving data
-      * @param &result Is the address of where the recevied data should be stored
-      *
-      * @return rturns whether the communication was successful
-      */
-      bool get_data(int channel, int &result);
+    float _last_button1_state;
+    float _last_button2_state;
+    float _start_time1;
+    float _start_time2;
+    /**
+    *
+    * @brief parses open com port and times out if no data
+    *
+    `    * @return string
+    *
+    */
+    std::string _read_port();
 
-      /** @brief Writes/Sets data, val, on a channel
-      *
-      * @param type Whether the type of received data is analog, digital, or servo
-      * @param channel The channel for writing the data on
-      * @param val The value being sent to the selected channel
-      *
-      * @return returns 1 if setting was successful, otherwise 0
-      */
-      bool set_data(int channel, int val);
+public:
 
-      /** @brief Calls the get_data function for receving analog data and converting it through ADC
-      * @param channel The channel for receiving data
-      *
-      * @return Returns the analog input as a % of the full scale (i.e. a 12 bit ADC would return X / 4096)
-      */
-      double get_analog(int channel);
+    /**
+    *
+    * @brief CClass Constructor
+    *
+    * @return void
+    *
+    */
+    CControlPi();
 
-      /** @brief Reads a digital input and debounces it (using a 1 second timeout)
-      *
-      * @param channel The channel for receiving data
-      *
-      * @return returns the data from the debounced button
-      */
-      int get_button(int channel);
+    /**
+    *
+    * @brief CClass Deconstructor
+    *
+    * @return void
+    *
+    */
+    ~CControlPi();
 
+    /**
+    *
+    * @brief Searches for com port and initializes
+    *
+    *
+    * @return true if initialization was succesful, false if not no user prompt on first call), _init_flag is made true if user wishes to stop searching for device
+    *
+    */
+    bool init_com();
 
-      /** @brief Reads servo value
-      *
-      * @param channel The channel for reading data
-      * @param position of the servo
-      *
-      * @return returns 1
-      */
-      int get_servo(int channel, int& position);
+    /**
+    *
+    * @brief Gets data from microcontroller
+    *
+    * @param type the desired data type (0: Digital, 1: Analog, 2: Servo)
+    * @param channel the channel to read data from (Digital: 0-40 Analog: 0-11 Servo: 0-3)
+    * @param result value sent from microcontroller
+    *
+    * @return true if get data was succesful
+    */
+    bool get_data(int type, int channel, int& result);
 
-      /** @brief Writes a value to servo
-      *
-      * @param channel The channel for writing data
-      *
-      * @return returns 1
-      */
-      bool set_servo(int channel, int val);
+    /**
+    *
+    * @brief Sets data on microcontroller
+    *
+    * @param type the desired data type (0: Digital, 1: Analog, 2: Servo)
+    * @param channel the channel to write data to (Digital: 0-40 Analog: 0-11 Servo 0-3) Note: no analog write
+    * @param val value sent to microcontroller
+    *
+    * @return true if set data was succesful
+    */
+    bool set_data(int type, int channel, int val);
 
-   private:
+    /**
+    *
+    * @brief Gets % full scale value of analog reading from microcontroller
+    *
+    * @return % of full scale analog value
+    */
+    float get_analog(int channel);
 
-   };
+    /**
+    *
+    * @brief Reads digital input and debounces it
+    *
+    * @return true if valid, false if not
+    */
+    bool get_button(int channel);
+
+    /**
+    *
+    * @brief getter for _init_flag
+    *
+    * @return state of _init_flag
+    */
+    bool get_comm_failed();
+
+};
