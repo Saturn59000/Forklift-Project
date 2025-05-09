@@ -102,6 +102,7 @@ void CForklift::update()
         //udp.send(_frame);
     }
 
+    /****************** MANUAL MODE*********************/
     handleCommands();
 
     // stop motors if no client for 3 s in manual 
@@ -114,19 +115,11 @@ void CForklift::update()
     static int frameCtr = 0;
     if (++frameCtr % 2 == 0) _drive.tick();   // tick every 2nd frame
 
+    /******************** AUTO MODE *********************/
     if (_autoMode)
     {
-
-
-
-
-
-
-
-
-
-
-        
+    //cv::imshow("cam view", _frame);
+    //cv::waitKey(10);
     }
 }
 
