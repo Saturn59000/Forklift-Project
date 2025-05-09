@@ -11,9 +11,7 @@ public:
        BIN1=8   BIN2=7   pwmB=24 (right motor)
        STBY=12
     */
-    MotorDriver(int AIN1=21,  int AIN2=20,  int pwmA=16,
-                int BIN1=7,   int BIN2=8,   int pwmB=25,
-                int stby=12, int duty=150); // 0-255
+    MotorDriver(); // 0-255
 
     void forward();
     void backward();

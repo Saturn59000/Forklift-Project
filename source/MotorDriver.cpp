@@ -3,35 +3,43 @@
 #define MOTORRAMP 15
 #define MAXDUTY 255
 #define TARGETPWM 49
+#define AIN1 21
+#define AIN2 20
+#define PWMA 25
+#define BIN1 7
+#define BIN2 8
+#define PWMB 16
+#define STBY 12
+#define DUTY 150
 
-MotorDriver::MotorDriver(int AIN1, int AIN2, int pwmA, int BIN1, int BIN2, int pwmB, int stby, int duty)
-:_AIN1(AIN1), _AIN2(AIN2), _pwmA(pwmA), _BIN1(BIN1), _BIN2(BIN2), _pwmB(pwmB), _stby(stby), _duty(duty)
+MotorDriver::MotorDriver()
 {
 
-    gpioSetMode(_AIN1,PI_OUTPUT); gpioSetMode(_AIN2,PI_OUTPUT);
-    gpioSetMode(_BIN1,PI_OUTPUT); gpioSetMode(_BIN2,PI_OUTPUT);
-    gpioSetMode(_pwmA,PI_OUTPUT); gpioSetMode(_pwmB,PI_OUTPUT);
-    gpioSetMode(_stby,PI_OUTPUT);
+    gpioSetMode(AIN1,PI_OUTPUT); gpioSetMode(AIN2,PI_OUTPUT);
+    gpioSetMode(BIN1,PI_OUTPUT); gpioSetMode(BIN2,PI_OUTPUT);
+    gpioSetMode(PWMA,PI_OUTPUT); gpioSetMode(PWMB,PI_OUTPUT);
+    gpioSetMode(STBY,PI_OUTPUT);
     stop();
+
 }
 
 
 void MotorDriver::prime()
 {
-    gpioWrite(_stby, 1);
+    gpioWrite(STBY, 1);
     _currentPWM = 60;                       // first tick starts here
-    gpioPWM(_pwmA, _currentPWM);
-    gpioPWM(_pwmB, _currentPWM);
-    _targetPWM = _duty;                     // slider‑chosen top speed
+    gpioPWM(PWMA, _currentPWM);
+    gpioPWM(PWMB, _currentPWM);
+    _targetPWM = DUTY;                     // slider‑chosen top speed
 }
 
 
 void MotorDriver::setLeft (bool fwd)
-{ gpioWrite(_AIN1,fwd); gpioWrite(_AIN2,!fwd); }
+{ gpioWrite(AIN1,fwd); gpioWrite(AIN2,!fwd); }
 
 
 void MotorDriver::setRight(bool fwd)
-{ gpioWrite(_BIN1,fwd); gpioWrite(_BIN2,!fwd); }
+{ gpioWrite(BIN1,fwd); gpioWrite(BIN2,!fwd); }
 
 
 void MotorDriver::setSpeed(int duty)
@@ -53,22 +61,42 @@ void MotorDriver::tick()
         (step < 0 && _currentPWM < _targetPWM))
         _currentPWM = _targetPWM;
 
-    gpioPWM(_pwmA, _currentPWM);
-    gpioPWM(_pwmB, _currentPWM);
+    gpioPWM(PWMA, _currentPWM);
+    gpioPWM(PWMB, _currentPWM);
 }
 
 
-void MotorDriver::forward()  { setLeft(true);  setRight(true);  prime(); }
-void MotorDriver::backward() { setLeft(false); setRight(false); prime(); }
-void MotorDriver::left()     { setLeft(false); setRight(true);  prime(); }
-void MotorDriver::right()    { setLeft(true);  setRight(false); prime(); }
+void MotorDriver::forward()  
+{ 
+    setLeft(true);  
+    setRight(true);  
+    prime(); 
+}
+void MotorDriver::backward() 
+{
+    setLeft(false); 
+    setRight(false); 
+    prime(); 
+}
+void MotorDriver::left()     
+{ 
+    setLeft(false); 
+    setRight(true);  
+    prime(); 
+}
+void MotorDriver::right()    
+{ 
+    setLeft(true);  
+    setRight(false); 
+    prime(); 
+}
 
 
 void MotorDriver::stop()
 {
     setSpeed(0);              // just set target; tick() will ramp down
-    gpioWrite(_AIN1,0); gpioWrite(_AIN2,0);
-    gpioWrite(_BIN1,0); gpioWrite(_BIN2,0);
-    gpioWrite(_stby,0);
+    gpioWrite(AIN1,0); gpioWrite(AIN2,0);
+    gpioWrite(BIN1,0); gpioWrite(BIN2,0);
+    gpioWrite(STBY,0);
 }
 
