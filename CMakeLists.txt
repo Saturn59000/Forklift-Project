@@ -17,7 +17,7 @@ file(GLOB SOURCES
 
 add_executable(PiForklift ${SOURCES})
 
-target_link_libraries(PiForklift PRIVATE ${OpenCV_LIBS})
+target_link_libraries(PiForklift PRIVATE ${OpenCV_LIBS} pthread pigpio)
 
 target_include_directories(PiForklift PRIVATE
     ${OpenCV_INCLUDE_DIRS}
