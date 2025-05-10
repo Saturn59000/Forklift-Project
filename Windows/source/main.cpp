@@ -26,6 +26,7 @@
 #define BTN_W 120
 #define BTN_H 30
 #define WINDOW_NAME "Forklift Client (KB + GUI)"
+#define DEFAULT_SPEED 150
 
 /* ------------ Feed thread ------------ */
 void feedThread (CClient& cli, std::atomic<bool>& stop, cv::Mat& shared, std::mutex& mtx)
@@ -70,7 +71,7 @@ int main()
 
     bool modeAuto = false, quit = false;
 
-    int speed = 150;           // shared with slider
+    int speed = DEFAULT_SPEED;           // shared with slider
     int lastSent = speed;
 
     /* flags for GUI highlight */
