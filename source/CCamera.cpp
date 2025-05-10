@@ -8,7 +8,8 @@ CCamera::~CCamera()
 }
 void CCamera::open(int camID)
 {
-    _vid.open(camID);
+    _vid.open(0);
+    
     if (!_vid.isOpened())
     {
         std::cerr << "Error: Unable to open camera " << camID << std::endl;

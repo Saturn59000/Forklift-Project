@@ -86,14 +86,14 @@ void MotorDriver::backward()
 }
 void MotorDriver::left()     
 { 
-    setLeft(false); 
-    setRight(true);  
+    setLeft(true); 
+    setRight(false);  
     prime(); 
 }
 void MotorDriver::right()    
 { 
-    setLeft(true);  
-    setRight(false); 
+    setLeft(false);  
+    setRight(true); 
     prime(); 
 }
 
