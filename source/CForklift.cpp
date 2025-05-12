@@ -1,6 +1,7 @@
 #define CVUI_IMPLEMENTATION
 #include "CForklift.h"
 #include "UdpFeedSender.h"
+#include "CAruco.h"
 
 
 #define WINDOW_NAME "Forklift – Pi side"
@@ -95,17 +96,12 @@ void CForklift::update()
 
     // camera -> feed 
     if(_vid.isOpened())
-        _vid >> _frame;
-    
-    
-    if (!_frame.empty())
-    {
-        cv::Mat small; 
-        cv::resize(_frame, small, FEED_SIZE);
-        _srvFeed.set_txim(small);
-        //udp.send(_frame);
-    }
-
+        {
+        cv::Mat no_rotate;
+        _vid >> no_rotate;
+        cv::rotate(no_rotate, _frame, cv::ROTATE_180);
+        }
+        
     /****************** MANUAL MODE*********************/
     handleCommands();
 
@@ -122,9 +118,12 @@ void CForklift::update()
     /******************** AUTO MODE *********************/
     if (_autoMode)
     {
-    //cv::imshow("cam view", _frame);
-    //cv::waitKey(10);
+        _aruco.detect_markers(_frame);
+        _aruco.draw_markers(_frame);
     }
+
+    send_frame(_frame);
+    
 }
 
 
@@ -226,4 +225,15 @@ void CForklift::draw()
 
     cvui::update();
     cv::imshow(WINDOW_NAME, _canvas);
+}
+
+void CForklift::send_frame(cv::Mat frame)
+{
+if (!frame.empty())
+    {
+        cv::Mat small; 
+        cv::resize(frame, small, FEED_SIZE);
+        _srvFeed.set_txim(small);
+        //udp.send(_frame);
+    }
 }

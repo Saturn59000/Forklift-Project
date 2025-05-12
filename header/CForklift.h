@@ -39,6 +39,7 @@ private:
     /* networking */
     CServer _srvFeed;
     CServer _srvCmd;
+    CAruco _aruco;
 
     // Servo
     unsigned _servoGpio = 18;          // GPIO15 → PWM0 pin 12 (you asked for 18)
@@ -64,4 +65,5 @@ private:
     /* helpers */
     void handleCommands();
     void pushLog(std::string s);
+    void send_frame(cv::Mat frame);
 };
