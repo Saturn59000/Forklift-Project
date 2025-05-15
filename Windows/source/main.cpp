@@ -34,41 +34,7 @@ bool isKeyDown(int vk)
 }
 
 
-/* --- 1.  Reliable sender that never drops a line ------------------ */
-bool send_all(SOCKET sock, const char* data, size_t len,
-    double timeout_sec = 0.2)
-{
-    auto t0 = Clock::now();
-
-    while (len)
-    {
-        int n = send(sock, data, int(len), 0);
-        if (n > 0) { data += n; len -= n; continue; }
-
-        if (WSAGetLastError() == WSAEWOULDBLOCK &&
-            Clock::now() - t0 < std::chrono::duration<double>(timeout_sec))
-        {
-            Sleep(2);            // back-off, then retry
-            continue;
-        }
-        return false;            // fatal or timed-out
-    }
-    return true;
-}
-
-/* --- 2.  ACK-drain thread keeps the pipe clear -------------------- */
-void ackDrainThread(std::atomic<bool>& stop, SOCKET sock)
-{
-    char buf[256];
-    while (!stop)
-    {
-        recv(sock, buf, sizeof(buf), 0);     // non-blocking (socket is blocking,
-        Sleep(5);                            // but zero-length read returns)
-    }
-}
-
-
-/* --- 3. Feed thread -------------------- */
+/* -------------------- Feed thread -------------------- */
 void feedThread(std::atomic<bool>& stop, cv::Mat& shared, std::mutex& mtx)
 {
     UdpFeedReceiver recv(4619, PI_IP, PORT_FEED);   // pick any free local port (4619)
