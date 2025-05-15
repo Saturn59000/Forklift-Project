@@ -15,6 +15,7 @@
 #include "CBase4618.h"
 #include "CControlPi.h"
 #include "MotorDriver.h"
+#include "CNavigate.h"
 
 
 /* ───────────────── Forklift application ───────────────── */
@@ -34,8 +35,11 @@ private:
     CServer _srvFeed;
     CServer _srvCmd;
     CAruco _aruco;
+    CNavigate _nav;
 
-    cv::Size _FEED_SIZE(320,420)
+    bool _run_once; 
+
+    cv::Size _FEED_SIZE = cv::Size(320,420);
     // Servo
     unsigned _servoGpio = 18;          // GPIO15 → PWM0 pin 12 (you asked for 18)
     unsigned _pulseUp   = 1000;        // µs for “Up”

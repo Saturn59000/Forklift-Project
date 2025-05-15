@@ -11,13 +11,14 @@
 
 enum aruco_ids
 {
-    TRUCK1 1,
-    TRUCK2 2, 
-    TRUCK3 3,
-    TRUCK4 4,
-    PACKAGE1 5,
-    PACKAGE2 6,
-}
+    TRUCK1 = 1,
+    TRUCK2 = 2, 
+    TRUCK3 = 3,
+    TRUCK4 = 4,
+    PACKAGE1 = 5,
+    PACKAGE2 = 6
+};
+
 
 static UdpFeedSender udp("10.0.0.91", 5005);
 
@@ -133,8 +134,15 @@ void CForklift::update()
         _aruco.detect_markers(_frame);
         _aruco.draw_markers(_frame);
         std::vector<int> ids = _aruco.get_marker_ids();
-        
-
+    
+        //find first truck box id
+        //test CNavigate timing
+        if (!_run_once)
+        {
+        _nav.forward(5);
+        _run_once = true; 
+        }
+   
 
     }
 
