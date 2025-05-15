@@ -15,14 +15,16 @@
 #include "CBase4618.h"
 #include "CControlPi.h"
 #include "MotorDriver.h"
+#include "CNavigate.h"
+
+
 #include "UdpFeedSender.h"
 
 /* Forklift.h  (or Forklift.cpp where the driver is constructed)
  *             replace the old constructor call               */
 
-constexpr int PORT_FEED = 4618;
-constexpr int PORT_CMD  = 4620;
-
+#define PORT_FEED = 4618;
+#define PORT_CMD  = 4620;
 
 /* ───────────────── Forklift application ───────────────── */
 class CForklift : public CBase4618
@@ -41,7 +43,11 @@ private:
     UdpFeedSender _udp;
     CServer _srvCmd;
     CAruco _aruco;
+    CNavigate _nav;
 
+    bool _run_once; 
+
+    cv::Size _FEED_SIZE = cv::Size(320,420);
     // Servo
     unsigned _servoGpio = 18;          // GPIO15 → PWM0 pin 12 (you asked for 18)
     unsigned _pulseUp   = 1000;        // µs for “Up”
