@@ -1,17 +1,30 @@
 #pragma once
-
 #include <opencv2/opencv.hpp>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
-class UdpFeedSender {
+
+class UdpFeedSender
+{
 public:
-    UdpFeedSender(const char* clientIP, uint16_t port);
-    ~UdpFeedSender();
-    void send(const cv::Mat& frame);          // call once per captured frame
+    void start (int port);                 // spawns worker thread
+    void stop  ();
+    void setFrame (const cv::Mat& im);     // called by your main loop
+
 private:
-    int          _sock;
-    sockaddr_in  _cli{};
-    uint32_t     _seq = 0;
-    std::vector<int> _params{cv::IMWRITE_JPEG_QUALITY, 65};
-    cv::Size     _sz{320,240};
+    void loop (int port);
+
+    int                 _sock = -1;
+    sockaddr_in         _clientAddr{};     // set after first HELLO
+    std::atomic<bool>   _haveClient{false};
+    std::atomic<bool>   _exit{false};
+
+    std::thread         _th;
+    std::mutex          _mx;
+    cv::Mat             _frame;            // latest frame
 };

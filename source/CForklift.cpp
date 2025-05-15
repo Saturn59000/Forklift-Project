@@ -1,14 +1,11 @@
 #define CVUI_IMPLEMENTATION
-#include "CForklift.h"
-#include "UdpFeedSender.h"
 #include "CAruco.h"
 
 
-#define WINDOW_NAME "Forklift – Pi side"
+#define WINDOW_NAME "Forklift – Server"
 static const cv::Size FEED_SIZE(320,240);
 static const int JPEG_QUAL = 65;
 
-static UdpFeedSender udp("10.0.0.91", 5005);
 
 CForklift::CForklift()
 {
@@ -20,20 +17,20 @@ CForklift::CForklift()
         throw std::runtime_error("pigpio init failed");
     }
     
-    _vid.open(0);
+    _cap.open(0);
     
     gpioSetMode(_servoGpio, PI_OUTPUT);
     gpioServo(_servoGpio, _pulseDown);   // start in “Down” position
 
-    std::thread([&]{ _srvFeed.start(PORT_FEED); }).detach();
+    std::thread([&]{ _udp.start(PORT_FEED); }).detach();
     std::thread([&]{ _srvCmd .start(PORT_CMD ); }).detach();
 }
 
 CForklift::~CForklift()
 {
     _drive.stop();
-    _srvFeed.stop();
     _srvCmd.stop();
+    if (_cap.isOpened()) _cap.release();
     cv::destroyAllWindows();
     gpioTerminate();
     gpioServo(_servoGpio, 0);   // turn PWM off
@@ -91,16 +88,22 @@ void CForklift::handleCommands()
 /* ───────────── update ───────────── */
 void CForklift::update()
 {
-    if (_exit) 
-        return;
+    if (_exit) return;
 
     // camera -> feed 
-    if(_vid.isOpened())
-        {
-        cv::Mat no_rotate;
-        _vid >> no_rotate;
-        cv::rotate(no_rotate, _frame, cv::ROTATE_180);
-        }
+    if(_cap.isOpened())
+    {
+    _cap.read(_frame);
+    cv::Mat no_rotate;
+    _vid >> no_rotate;
+    cv::rotate(no_rotate, _frame, cv::ROTATE_180);
+    }
+
+    if (!_frame.empty())
+    {
+        cv::Mat small; cv::resize(_frame, small, FEED_SIZE);
+        _udp.setFrame(small);
+    }
         
     /****************** MANUAL MODE*********************/
     handleCommands();
@@ -225,15 +228,4 @@ void CForklift::draw()
 
     cvui::update();
     cv::imshow(WINDOW_NAME, _canvas);
-}
-
-void CForklift::send_frame(cv::Mat frame)
-{
-if (!frame.empty())
-    {
-        cv::Mat small; 
-        cv::resize(frame, small, FEED_SIZE);
-        _srvFeed.set_txim(small);
-        //udp.send(_frame);
-    }
 }
