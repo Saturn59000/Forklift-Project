@@ -5,6 +5,9 @@ class CAuto
 {
 private: 
 
+void find_markers();
+
+
 public:
 
 CAuto();

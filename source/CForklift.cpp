@@ -5,8 +5,19 @@
 
 
 #define WINDOW_NAME "Forklift – Pi side"
-static const cv::Size FEED_SIZE(320,240);
-static const int JPEG_QUAL = 65;
+#define PORT_FEED 4618
+#define PORT_CMD 4620
+#define JPEG_QUAL 65
+
+enum aruco_ids
+{
+    TRUCK1 1,
+    TRUCK2 2, 
+    TRUCK3 3,
+    TRUCK4 4,
+    PACKAGE1 5,
+    PACKAGE2 6,
+}
 
 static UdpFeedSender udp("10.0.0.91", 5005);
 
@@ -118,11 +129,16 @@ void CForklift::update()
     /******************** AUTO MODE *********************/
     if (_autoMode)
     {
+        //detect aruco
         _aruco.detect_markers(_frame);
         _aruco.draw_markers(_frame);
+        std::vector<int> ids = _aruco.get_marker_ids();
+        
+
+
     }
 
-    send_frame(_frame);
+    send_frame(_frame); //send frame to camera with aruco ids
     
 }
 
@@ -232,7 +248,7 @@ void CForklift::send_frame(cv::Mat frame)
 if (!frame.empty())
     {
         cv::Mat small; 
-        cv::resize(frame, small, FEED_SIZE);
+        cv::resize(frame, small, _FEED_SIZE);
         _srvFeed.set_txim(small);
         //udp.send(_frame);
     }
