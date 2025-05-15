@@ -1,15 +1,18 @@
 ﻿#pragma once
-
 #include <opencv2/opencv.hpp>
-#include <winsock2.h>
+#include <WinSock2.h>
+#include <chrono>
+#include <thread>
 
-class UdpFeedReceiver {
+class UdpFeedReceiver
+{
 public:
-    UdpFeedReceiver(uint16_t port);
+    UdpFeedReceiver(int localPort, const char* piAddr, int piPort);
     ~UdpFeedReceiver();
-    bool grab(cv::Mat& out);            // non‑blocking, true → new image
+    bool grab(cv::Mat& out);        // returns true if got new frame
+
 private:
-    SOCKET     _s;
-    uint32_t   _lastSeq = 0;
-    char       _buf[65535];
+    SOCKET      _sock = INVALID_SOCKET;
+    sockaddr_in _pi{};
+    std::vector<uchar> _buf;
 };

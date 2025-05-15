@@ -3,7 +3,7 @@
 ///////////////////////////////////////////////////////////////////
 #include "stdafx.h"
 #include <iostream>
-#include <cstdint>
+
 #include "Client.h"
 
 #ifdef WIN4618
@@ -94,65 +94,52 @@ void CClient::tx_str (std::string str)
   send(_socket, str.c_str(), str.length(), 0);
 }
 
-bool CClient::recv_all(SOCKET sock, char* data, size_t len, double timeout_sec)
+bool CClient::rx_str (std::string &str)
 {
-    size_t got = 0;
-    double start = cv::getTickCount();
+	char rxbuff[BUFF_SIZE];
+  int rxbytes = 0;
+  double start_time = cv::getTickCount();
 
-    while (got < len)
+  do
+  {
+    rxbytes = recv(_socket, rxbuff, BUFF_SIZE - 1, 0); // recvfrom
+
+    if (rxbytes > 0)
     {
-        int n = recv(sock, data + got, static_cast<int>(len - got), 0);
-        if (n > 0) { got += n; continue; }
-
-        if (n == SOCKET_ERROR &&
-            WSAGetLastError() == WSAEWOULDBLOCK)
-        {
-            double dt = (cv::getTickCount() - start) /
-                cv::getTickFrequency();
-            if (dt < timeout_sec) { std::this_thread::sleep_for(std::chrono::milliseconds(2)); continue; }
-        }
-        return false;                // timeout or peer closed
+      rxbuff[rxbytes] = 0; // Add NULL
+      str = rxbuff;
+      return true;
     }
-    return true;
+  }
+  while (rxbytes == -1 && (cv::getTickCount() - start_time) / cv::getTickFrequency() < 1.0);  // Timeout after 1 second
+
+  return false;
 }
 
-bool CClient::rx_str(std::string& str)
+bool CClient::rx_im(cv::Mat &im)
 {
-    /* ---------- 1. read 4‑byte length header ---------- */
-    uint32_t netlen = 0;
-    if (!CClient::recv_all(_socket,
-        reinterpret_cast<char*>(&netlen), 4))
-        return false;
+	char rxbuff[BUFF_SIZE];
+	int rxbytes = -1;
+  int imagebytes = 0;
+  int minimum_image_size = 5000;
 
-    uint32_t len = ntohl(netlen);
-    if (len == 0 || len > 1 << 20)     // 1 MB sanity cap
-        return false;
+  double start_time = cv::getTickCount();
 
-    /* ---------- 2. read the payload ---------- */
-    str.resize(len);
-    if (!CClient::recv_all(_socket,
-        str.data(), len))
-        return false;
+  // Store incoming data into byte array
+  do
+	{
+		rxbytes = recv(_socket, rxbuff, BUFF_SIZE, 0);
+	} 
+  while (rxbytes == -1 && (cv::getTickCount() - start_time) / cv::getTickFrequency() < 1.0);  // Timeout after 1 second
 
-    return true;                       // ok
-}
+  std::cout << "\nRXbytes = " << rxbytes;
 
-bool CClient::rx_im(cv::Mat& im)
-{
-    uint32_t netlen;
-    if (!CClient::recv_all(_socket, reinterpret_cast<char*>(&netlen), 4))
-        return false;
+  // If all the bytes were recieved, decode JPEG data to image (assumes image size minimum is 5kB)
+	if (rxbytes > minimum_image_size)
+	{
+		im = imdecode(cv::Mat(rxbytes, 1, CV_8U, rxbuff), cv::IMREAD_UNCHANGED);
+		return true;
+	}
 
-    uint32_t img_len = ntohl(netlen);
-    if (img_len == 0 || img_len > 1 << 22)   // 4 MB sanity
-        return false;
-
-    static std::vector<uchar> buf;
-    buf.resize(img_len);
-
-    if (!CClient::recv_all(_socket, reinterpret_cast<char*>(buf.data()), img_len))
-        return false;
-
-    im = cv::imdecode(buf, cv::IMREAD_UNCHANGED);
-    return !im.empty();
+	return false;
 }

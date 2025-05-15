@@ -8,6 +8,7 @@
 #include "cvui.h"
 
 #include "Client.h"
+#include "UdpFeedReceiver.h"
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -16,53 +17,48 @@
 #include <windows.h>
 #include <sstream>
 
-//Pi, window, and port settings
 
-#define PI_IP "192.168.137.32"
-#define PORT_CMD 4620
-#define PORT_FEED 4618
-#define IMG_W 320
-#define IMG_H 240
-#define BTN_W 120
-#define BTN_H 30
-#define WINDOW_NAME "Forklift Client (KB + GUI)"
-#define DEFAULT_SPEED 150
-
-/* ------------ Feed thread ------------ */
-void feedThread (CClient& cli, std::atomic<bool>& stop, cv::Mat& shared, std::mutex& mtx)
-{
-    const int FPS_DELAY = 1000 / 15;
-    while (!stop)
-    {
-        cli.tx_str("im");
-        cv::Mat img;
-        if (cli.rx_im(img) && !img.empty())
-        {
-            std::lock_guard<std::mutex> lk(mtx);
-            shared = img.clone();
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(FPS_DELAY));
-    }
-    stop = true;
-}
+ /* ------------ Settings ------------ */
+static const char* PI_IP = "10.0.0.91";
+static const int   PORT_CMD = 4620;
+static const int   PORT_FEED = 4618;
+static const int   IMG_W = 320, IMG_H = 240;
+#define WINDOW_NAME "Forklift Client"
 
 
+/* ------------ Small helpers ------------ */
+using Clock = std::chrono::steady_clock; // helper for highlight expiration
 bool isKeyDown(int vk)
 {
     return (GetAsyncKeyState(vk) & 0x8000) != 0;
 }
 
 
-/* helper for highlight expiration */
-using Clock = std::chrono::steady_clock;
+/* -------------------- Feed thread -------------------- */
+void feedThread(std::atomic<bool>& stop, cv::Mat& shared, std::mutex& mtx)
+{
+    UdpFeedReceiver recv(4619, PI_IP, PORT_FEED);   // pick any free local port (4619)
+
+    while (!stop)
+    {
+        cv::Mat img;
+        if (recv.grab(img))
+        {
+            std::lock_guard<std::mutex> lk(mtx);
+            shared = img.clone();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+}
 
 
+/* ------------------------------------------------------------------ */
 int main()
 {
     cv::Mat ui(cv::Size(640, 500), CV_8UC3);
     cvui::init(WINDOW_NAME);
 
-    CClient cmdCli, feedCli;
+    CClient cmdCli;
     bool connected = false, feedRunning = false;
 
     std::thread feedT;
@@ -71,7 +67,7 @@ int main()
 
     bool modeAuto = false, quit = false;
 
-    int speed = DEFAULT_SPEED;           // shared with slider
+    int speed = 150;           // shared with slider
     int lastSent = speed;
 
     /* flags for GUI highlight */
@@ -86,19 +82,12 @@ int main()
         if (cvui::button(ui, 20, 60, 120, 30, "Connect") && !connected)
         {
             cmdCli.connect_socket(PI_IP, PORT_CMD);
-            feedCli.connect_socket(PI_IP, PORT_FEED);
             connected = true;
         }
         if (cvui::button(ui, 160, 60, 120, 30, "Disconnect") && connected)
         {
-            if (feedRunning) 
-            { 
-                stopFeed = true; 
-                feedT.join(); 
-                feedRunning = false; 
-            }
+            if (feedRunning) { stopFeed = true; feedT.join(); feedRunning = false; }
             cmdCli.close_socket();
-            feedCli.close_socket(); 
             connected = false;
         }
 
@@ -201,7 +190,7 @@ int main()
         }
 
         /* --- Mode buttons --- */
-        y0 = 305; 
+        y0 = 305; const int BTN_W = 120, BTN_H = 30;
         int activeX = modeAuto ? 20 : 160;
         cv::rectangle(ui, cv::Rect(activeX - 2, y0 - 2, BTN_W + 4, BTN_H + 4), { 0,100,0 }, cv::FILLED);
         if (cvui::button(ui, 20, y0, BTN_W, BTN_H, "Auto Mode"))   modeAuto = true;
@@ -219,7 +208,7 @@ int main()
         if (cvui::button(ui, 20, y0, 120, 30, "Start Feed") && connected && !feedRunning)
         {
             stopFeed = false;
-            feedT = std::thread(feedThread, std::ref(feedCli), std::ref(stopFeed), std::ref(shared), std::ref(imMtx));
+            feedT = std::thread(feedThread, std::ref(stopFeed), std::ref(shared), std::ref(imMtx));
             feedRunning = true;
         }
         if (cvui::button(ui, 160, y0, 120, 30, "Stop Feed") && feedRunning)
@@ -268,18 +257,10 @@ int main()
                 {
                     switch (dir)
                     {
-                    case 1: cmdCli.tx_str("UP\n");    
-                            flash["UP"] = Clock::now(); 
-                            break;
-                    case 2: cmdCli.tx_str("DOWN\n");  
-                            flash["DOWN"] = Clock::now(); 
-                            break;
-                    case 3: cmdCli.tx_str("LEFT\n"); 
-                            flash["LEFT"] = Clock::now(); 
-                            break;
-                    case 4: cmdCli.tx_str("RIGHT\n"); 
-                            flash["RIGHT"] = Clock::now(); 
-                            break;
+                    case 1: cmdCli.tx_str("UP\n");    flash["UP"] = Clock::now(); break;
+                    case 2: cmdCli.tx_str("DOWN\n");  flash["DOWN"] = Clock::now(); break;
+                    case 3: cmdCli.tx_str("LEFT\n");  flash["LEFT"] = Clock::now(); break;
+                    case 4: cmdCli.tx_str("RIGHT\n"); flash["RIGHT"] = Clock::now(); break;
                     default:
                         if (!stopSent)
                         {
@@ -322,12 +303,7 @@ int main()
         if (k == 27) quit = true;  // Esc quits
     }
 
-    if (feedRunning) 
-    {
-        stopFeed = true; 
-        feedT.join(); 
-    }
-    cmdCli.close_socket(); 
-    feedCli.close_socket();
+    if (feedRunning) { stopFeed = true; feedT.join(); }
+    cmdCli.close_socket();
     return 0;
 }

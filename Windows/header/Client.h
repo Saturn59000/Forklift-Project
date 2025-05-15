@@ -6,8 +6,8 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 
+#undef PI4618
 #define WIN4618
-//#define PI4618
 
 #ifdef WIN4618
 #include "Winsock2.h"
@@ -52,7 +52,6 @@ public:
   void tx_str(std::string str);
   bool rx_str(std::string &str);
   bool rx_im(cv::Mat &im);
-  static bool recv_all(SOCKET sock, char* data, size_t len, double timeout_sec = 1.0);
 };
 
 

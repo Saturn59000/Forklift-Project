@@ -18,6 +18,14 @@
 #include "CNavigate.h"
 
 
+#include "UdpFeedSender.h"
+
+/* Forklift.h  (or Forklift.cpp where the driver is constructed)
+ *             replace the old constructor call               */
+
+#define PORT_FEED = 4618;
+#define PORT_CMD  = 4620;
+
 /* ───────────────── Forklift application ───────────────── */
 class CForklift : public CBase4618
 {
@@ -32,7 +40,7 @@ public:
 
 private:
     /* networking */
-    CServer _srvFeed;
+    UdpFeedSender _udp;
     CServer _srvCmd;
     CAruco _aruco;
     CNavigate _nav;
@@ -47,7 +55,7 @@ private:
 
     /* vision */
     //CCamera _cam;
-    cv::VideoCapture _vid;
+    cv::VideoCapture _cap;
     cv::Mat _frame;
 
     /* control */
@@ -64,5 +72,4 @@ private:
     /* helpers */
     void handleCommands();
     void pushLog(std::string s);
-    void send_frame(cv::Mat frame);
 };
