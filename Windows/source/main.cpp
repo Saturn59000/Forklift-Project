@@ -21,9 +21,10 @@
 
  /* ------------ Settings ------------ */
 static const char* PI_IP = "192.168.137.122";
-static const int   PORT_CMD = 4620;
-static const int   PORT_FEED = 4618;
-static const int   IMG_W = 320, IMG_H = 240;
+#define PORT_CMD 4620;
+#define PORT_FEED 4618;
+#define IMG_W 320;
+#define IMG_H 240;
 #define WINDOW_NAME "Forklift Client"
 
 /* ------------ Small helpers ------------ */
