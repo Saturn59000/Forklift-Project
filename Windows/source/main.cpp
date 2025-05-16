@@ -20,7 +20,7 @@
 
 
  /* ------------ Settings ------------ */
-static const char* PI_IP = "10.0.0.91";
+static const char* PI_IP = "192.168.137.122";
 static const int   PORT_CMD = 4620;
 static const int   PORT_FEED = 4618;
 static const int   IMG_W = 320, IMG_H = 240;
@@ -112,10 +112,11 @@ int main()
 
                 if (show)
                 {
-                    cv::Scalar col =
-                        (tag == "STOP") ? cv::Scalar(0, 0, 255) :   // red
-                        (tag == "FUP" || tag == "FDN") ? cv::Scalar(0, 255, 255) : // yellow
-                        cv::Scalar(0, 255, 0);  // green
+                   cv::Scalar col =
+                      (tag == "STOP") ? cv::Scalar(0, 0, 255) : // red
+                      (tag == "F1" || tag == "F2" || tag == "F3" || tag == "F4") ? cv::Scalar(0, 255, 255) : // yellow
+                      cv::Scalar(0, 255, 0);  // green
+
 
                     cv::rectangle(ui, cv::Rect(x - 1.01, y - 1, w + 2, h + 2), col, 2);
                 }
@@ -158,23 +159,44 @@ int main()
             }
             highlight(110, y0 + 80, bw, bh, "STOP");
 
-            /* ------------------ Fork-lift servo buttons ------------------ */
-            int yServo = y0 + 140;           // place one row below Stop
-            if (cvui::button(ui, 20, yServo, bw + 50, bh, "Fork Up") && connected)
-            {
-                cmdCli.tx_str("FORKUP\n");
-                flash["FUP"] = now;
-            }
+            /* ---------- Fork position buttons (keys 1-4) ---------- */
+            const int yServo = y0 + 140;
+            const int bwBig = bw + 30;
 
-            int wFork = bw + 50;
-            highlight(20, yServo, wFork, bh, "FUP");
+            /* send helper */
+            auto forkCmd = [&](int pos)
+               {
+               if (connected)
+                  cmdCli.tx_str("FORK" + std::to_string(pos) + "\n");
+               };
 
-            if (cvui::button(ui, 160, yServo, bw + 50, bh, "Fork Down") && connected)
-            {
-                cmdCli.tx_str("FORKDOWN\n");
-                flash["FDN"] = now;
-            }
-            highlight(160, yServo, wFork, bh, "FDN");
+            /* four buttons + highlight + key-bindings */
+            auto drawForkBtn = [&](int pos, int x, const std::string& lbl)
+               {
+               std::string tag = "F" + std::to_string(pos);
+
+               if (cvui::button(ui, x, yServo, bwBig, bh, lbl))
+                  {
+                  forkCmd(pos);
+                  flash[tag] = now;                  /* for visual highlight   */
+                  }
+
+               /* key shortcuts: 1-4 */
+               int vk = '0' + pos;                    /* '1','2','3','4'        */
+               if (isKeyDown(vk))
+                  {
+                  forkCmd(pos);
+                  flash[tag] = now;
+                  }
+
+               highlight(x, yServo, bwBig, bh, tag);
+               };
+
+            /* layout: left-to-right (20 px apart) */
+            drawForkBtn(1, 20, "Fork Pos 1");   /* 0°   */
+            drawForkBtn(2, 121, "Fork Pos 2");   /* 60°  */
+            drawForkBtn(3, 222, "Fork Pos 3");   /* 120° */
+            drawForkBtn(4, 323, "Fork Pos 4");   /* 180° */
 
             /* ------------------ Speed slider ------------------ */
             cvui::trackbar(ui, 380, 350, 200, &speed, 50, 255);
