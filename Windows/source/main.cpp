@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <windows.h>
 #include <sstream>
+#include <queue>
 
 
  /* ------------ Settings ------------ */
@@ -24,7 +25,6 @@ static const int   PORT_CMD = 4620;
 static const int   PORT_FEED = 4618;
 static const int   IMG_W = 320, IMG_H = 240;
 #define WINDOW_NAME "Forklift Client"
-
 
 /* ------------ Small helpers ------------ */
 using Clock = std::chrono::steady_clock; // helper for highlight expiration
@@ -102,13 +102,13 @@ int main()
                     show = true;
 
                 // persistent highlight while key is held
-                if (tag == "UP" && isKeyDown(VK_UP))    show = true;
-                if (tag == "DOWN" && isKeyDown(VK_DOWN))  show = true;
-                if (tag == "LEFT" && isKeyDown(VK_LEFT))  show = true;
+                if (tag == "UP" && isKeyDown(VK_UP))       show = true;
+                if (tag == "DOWN" && isKeyDown(VK_DOWN))   show = true;
+                if (tag == "LEFT" && isKeyDown(VK_LEFT))   show = true;
                 if (tag == "RIGHT" && isKeyDown(VK_RIGHT)) show = true;
-                if (tag == "STOP" && isKeyDown(VK_SPACE)) show = true;
-                if (tag == "FUP" && isKeyDown('W'))      show = true;
-                if (tag == "FDN" && isKeyDown('S'))      show = true;
+                if (tag == "STOP" && isKeyDown(VK_SPACE))  show = true;
+                if (tag == "FUP" && isKeyDown('W'))        show = true;
+                if (tag == "FDN" && isKeyDown('S'))        show = true;
 
                 if (show)
                 {
@@ -125,31 +125,36 @@ int main()
         {
             if (cvui::button(ui, 110, y0, bw, bh, "Up") && connected)
             {
-                cmdCli.tx_str("UP\n");   flash["UP"] = now;
+                cmdCli.tx_str("UP\n");
+                flash["UP"] = now;
             }
             highlight(110, y0, bw, bh, "UP");
 
             if (cvui::button(ui, 40, y0 + 40, bw, bh, "Left") && connected)
             {
-                cmdCli.tx_str("LEFT\n"); flash["LEFT"] = now;
+                cmdCli.tx_str("LEFT\n");
+                flash["LEFT"] = now;
             }
             highlight(40, y0 + 40, bw, bh, "LEFT");
 
             if (cvui::button(ui, 111, y0 + 40, bw, bh, "Down") && connected)
             {
-                cmdCli.tx_str("DOWN\n"); flash["DOWN"] = now;
+                cmdCli.tx_str("DOWN\n");
+                flash["DOWN"] = now;
             }
             highlight(111, y0 + 40, bw, bh, "DOWN");
 
             if (cvui::button(ui, 182, y0 + 40, bw, bh, "Right") && connected)
             {
-                cmdCli.tx_str("RIGHT\n"); flash["RIGHT"] = now;
+                cmdCli.tx_str("RIGHT\n");
+                flash["RIGHT"] = now;
             }
             highlight(182, y0 + 40, bw, bh, "RIGHT");
 
             if (cvui::button(ui, 110, y0 + 80, bw, bh, "Stop") && connected)
             {
-                cmdCli.tx_str("STOP\n"); flash["STOP"] = now;
+                cmdCli.tx_str("STOP\n");
+                flash["STOP"] = now;
             }
             highlight(110, y0 + 80, bw, bh, "STOP");
 
