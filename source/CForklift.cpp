@@ -78,8 +78,11 @@ void CForklift::handleCommands()
         s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
         pushLog(s);
 
+        /* -------- mode switching -------- */
         if      (s == "MODE AUTO")   _autoMode = true;
         else if (s == "MODE MANUAL") _autoMode = false;
+
+        /* -------- manual drive controls -------- */
         else if (!_autoMode)
         {                    // manual only
             if      (s == "UP")    _drive.forward();
@@ -87,14 +90,22 @@ void CForklift::handleCommands()
             else if (s == "LEFT")  _drive.left();
             else if (s == "RIGHT") _drive.right();
             else if (s == "STOP")  _drive.stop();
-            else if (s == "FORKUP")   gpioServo(_servoGpio, _pulseUp);
-            else if (s == "FORKDOWN") gpioServo(_servoGpio, _pulseDown);
+
+            /* ----- NEW fork-position presets ----- */
+            else if (s == "FORK1") gpioServo(_servoGpio, SERVO_MIN_US);
+            else if (s == "FORK2") gpioServo(_servoGpio, SERVO_MIN_US + SERVO_STEP_US);
+            else if (s == "FORK3") gpioServo(_servoGpio, SERVO_MIN_US + 2*SERVO_STEP_US);
+            else if (s == "FORK4") gpioServo(_servoGpio, SERVO_MAX_US);
+
+            /* ----- speed slider ----- */
             else if (s.rfind("SPD",0)==0)
             {
                 int v = std::stoi(s.substr(3));
                 _speed = v;
             }
         }
+        
+        /* -------------- ACK optional -------------- */
         _srvCmd.send_string("ACK " + s + "\n");
     }
 }
