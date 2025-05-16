@@ -1,101 +1,62 @@
 ///////////////////////////////////////////////////////////////////
-// Prepared for BCIT ELEX4618, April 2022, by Craig Hennessey
+// BCIT ELEX4618 – Reliable TCP server (blocking I/O, 2025-05-15)
 ///////////////////////////////////////////////////////////////////
 #pragma once
 
-#define PI4618
+#undef  WIN4618
+#define PI4618                               // comment when compiling on PC
 
-#include <iostream>
 #include <string>
-#include <mutex>
 #include <vector>
-#include <cstdint>
+#include <mutex>
+#include <thread>
+#include <atomic>
 
-#ifdef PI4618
 #include <opencv2/opencv.hpp>
-#endif
 
-#ifdef _WIN32
-  /* Winsock already typedefs SOCKET */
+#ifdef WIN4618
   #include <winsock2.h>
+  #pragma comment(lib,"ws2_32.lib")
 #else
-  /* On Linux / Pi a socket is simply an int                */
-  #include <sys/socket.h>
+  #define INVALID_SOCKET -1
+  #define SOCKET_ERROR   -1
   typedef int SOCKET;
+  #include <sys/types.h>
+  #include <unistd.h>
+  #include <fcntl.h>
+  #include <sys/socket.h>
+  #include <netinet/in.h>
+  #include <arpa/inet.h>
+  #include <errno.h>
+  #include <netinet/tcp.h>
 #endif
 
 class CServer
 {
-private:
-  bool _server_exit;
-  cv::Mat _txim;
-
-  std::mutex _image_mutex;
-  std::mutex _rx_mutex;
-  std::mutex _tx_mutex;
-  std::vector<std::string> _cmd_list;
-  std::vector<std::string> _send_list;
-
-  bool setblocking(int fd, bool blocking);
-
 public:
-  CServer();
-	~CServer();
+    CServer();
+    ~CServer();
 
-  // Start server listening (probably best to do in a separate thread)
-  void start(int port);
-  void stop();
+    void start(int port);                 // call in its own thread
+    void stop();
 
-  // Set the image to transmit
-  void set_txim (cv::Mat &im);
+    void get_cmd  (std::vector<std::string>& cmds);
+    void send_string(const std::string& s);   // queues outbound line
+    void set_txim (cv::Mat& im);              // sets image to transmit
 
-  // Get a vector of the commands the server has read
-  void get_cmd (std::vector<std::string> &cmds);
+private:
+    /* networking */
+    SOCKET  _listenSock{ INVALID_SOCKET };
+    SOCKET  _cliSock   { INVALID_SOCKET };
+    std::atomic<bool> _exit{ false };
 
-  // Send a response
-  void send_string (std::string send_str);
+    /* queues & buffers */
+    std::mutex _rxMtx, _txMtx, _imgMtx;
+    std::vector<std::string> _rxList;
+    std::vector<std::string> _txList;
+    cv::Mat  _txImg;
 
-  #ifdef _WIN32
-  using SOCKET = unsigned long long;   // already defined on Windows
-  #endif
-
-  // NEW - send_all loops until every byte is written or the connection dies
-  bool send_all(SOCKET sock, const char* data, size_t len);
+    /* helpers */
+    bool setBlocking(int fd, bool block);
+    bool sendAll    (const char* buf, size_t len);
 };
-
-
-/*
-NOTE: If you see this error when running your program on the Pi then follow the instructions below.
-
-Xlib: sequence lost(0x10061 > 0x6d) in reply type 0x1c!
-[xcb] Unknown request in queue while dequeuing
-[xcb] Most likely this is a multi - threaded client and XInitThreads has not been called
-[xcb] Aborting, sorry about that.
-main : .. / .. / src / xcb_io.c : 165 : dequeue_pending_request : Assertion `!xcb_xlib_unknown_req_in_deq' failed.
-2021 - 03 - 31 16:31 : 31 sigHandler : Unhandled signal 6, terminating
-
-------------------------------------
-
-Install X11 with :
-
-sudo apt-get install libx11-dev
-
-------------------------------------
-
-Include X11 library AFTER the OpenCV header:
-
-#include <opencv2/opencv.hpp>
-#include <X11/Xlib.h>
-
-------------------------------------
-
-Call XInitThreads in main or constructor:
-
-XInitThreads();
-
-------------------------------------
-
-Add directive to linker:
-- lX11
-
-*/
