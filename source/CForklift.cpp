@@ -2,9 +2,24 @@
 #include "CAruco.h"
 
 
+
 #define WINDOW_NAME "Forklift – Server"
-static const cv::Size FEED_SIZE(320,240);
-static const int JPEG_QUAL = 65;
+#define JPEG_QUAL = 65;
+
+#define WINDOW_NAME "Forklift – Pi side"
+#define PORT_FEED 4618
+#define PORT_CMD 4620
+#define JPEG_QUAL 65
+
+enum aruco_ids
+{
+    TRUCK1 = 1,
+    TRUCK2 = 2, 
+    TRUCK3 = 3,
+    TRUCK4 = 4,
+    PACKAGE1 = 5,
+    PACKAGE2 = 6
+};
 
 
 CForklift::CForklift()
@@ -101,7 +116,7 @@ void CForklift::update()
 
     if (!_frame.empty())
     {
-        cv::Mat small; cv::resize(_frame, small, FEED_SIZE);
+        cv::Mat small; cv::resize(_frame, small, _FEED_SIZE);
         _udp.setFrame(small);
     }
         
@@ -121,11 +136,23 @@ void CForklift::update()
     /******************** AUTO MODE *********************/
     if (_autoMode)
     {
+        //detect aruco
         _aruco.detect_markers(_frame);
         _aruco.draw_markers(_frame);
+        std::vector<int> ids = _aruco.get_marker_ids();
+    
+        //find first truck box id
+        //test CNavigate timing
+        if (!_run_once)
+        {
+        _nav.forward(5);
+        _run_once = true; 
+        }
+   
+
     }
 
-    send_frame(_frame);
+    send_frame(_frame); //send frame to camera with aruco ids
     
 }
 

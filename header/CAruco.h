@@ -4,6 +4,7 @@
 #include <opencv2/aruco.hpp>
 #include <iostream>
 
+
 class CAruco 
 {
     private:
