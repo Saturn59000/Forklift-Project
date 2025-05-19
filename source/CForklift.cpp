@@ -1,20 +1,14 @@
 #define CVUI_IMPLEMENTATION
-#include "CAruco.h"
-
-
+#include "CForklift.h"
 
 #define WINDOW_NAME "Forklift – Server"
-#define JPEG_QUAL = 65;
-
-#define WINDOW_NAME "Forklift – Pi side"
-#define PORT_FEED 4618
-#define PORT_CMD 4620
-#define JPEG_QUAL 65
+static const cv::Size FEED_SIZE(320,240);
+static const int JPEG_QUAL = 65;
 
 enum aruco_ids
 {
     TRUCK1 = 1,
-    TRUCK2 = 2, 
+    TRUCK2 = 2,
     TRUCK3 = 3,
     TRUCK4 = 4,
     PACKAGE1 = 5,
@@ -31,15 +25,16 @@ CForklift::CForklift()
     {
         throw std::runtime_error("pigpio init failed");
     }
-    
+
     _cap.open(0);
-    
+
     gpioSetMode(_servoGpio, PI_OUTPUT);
-    gpioServo(_servoGpio, _pulseDown);   // start in “Down” position
+    gpioServo(_servoGpio, SERVO_MIN_US);   // start in “Down” position
 
     std::thread([&]{ _udp.start(PORT_FEED); }).detach();
     std::thread([&]{ _srvCmd .start(PORT_CMD ); }).detach();
 }
+
 
 CForklift::~CForklift()
 {
@@ -91,7 +86,7 @@ void CForklift::handleCommands()
             else if (s == "RIGHT") _drive.right();
             else if (s == "STOP")  _drive.stop();
 
-            /* ----- NEW fork-position presets ----- */
+            /* ----- fork-position presets ----- */
             else if (s == "FORK1") gpioServo(_servoGpio, SERVO_MIN_US);
             else if (s == "FORK2") gpioServo(_servoGpio, SERVO_MIN_US + SERVO_STEP_US);
             else if (s == "FORK3") gpioServo(_servoGpio, SERVO_MIN_US + 2*SERVO_STEP_US);
@@ -104,7 +99,7 @@ void CForklift::handleCommands()
                 _speed = v;
             }
         }
-        
+
         /* -------------- ACK optional -------------- */
         _srvCmd.send_string("ACK " + s + "\n");
     }
@@ -116,25 +111,27 @@ void CForklift::update()
 {
     if (_exit) return;
 
-    // camera -> feed 
+    // camera -> feed
     if(_cap.isOpened())
     {
     _cap.read(_frame);
+
+    // Comment out the three below lines if you don't want rotation
     cv::Mat no_rotate;
-    _vid >> no_rotate;
+    _cap >> no_rotate;
     cv::rotate(no_rotate, _frame, cv::ROTATE_180);
     }
 
     if (!_frame.empty())
     {
-        cv::Mat small; cv::resize(_frame, small, _FEED_SIZE);
+        cv::Mat small; cv::resize(_frame, small, FEED_SIZE);
         _udp.setFrame(small);
     }
-        
+
     /****************** MANUAL MODE*********************/
     handleCommands();
 
-    // stop motors if no client for 3 s in manual 
+    /* stop motors if no client for 3 s in manual */
     if (!_autoMode && _clientSeen && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - _lastCmdT).count() > 3)
     {
         _drive.stop();
@@ -151,20 +148,20 @@ void CForklift::update()
         _aruco.detect_markers(_frame);
         _aruco.draw_markers(_frame);
         std::vector<int> ids = _aruco.get_marker_ids();
-    
+
         //find first truck box id
         //test CNavigate timing
         if (!_run_once)
         {
         _nav.forward(5);
-        _run_once = true; 
+        _run_once = true;
         }
-   
+
 
     }
 
-    send_frame(_frame); //send frame to camera with aruco ids
-    
+    _udp.setFrame(_frame); //send frame to camera with aruco ids
+
 }
 
 
@@ -240,18 +237,29 @@ void CForklift::draw()
     }
 
 
-    /* ─── Fork-lift servo buttons ─── */
-    int yServo = y0 + 130;
+    /* ─── Fork-lift preset-position buttons (keys 1-4) ─── */
+    int  yServo   = y0 + 130;      // same vertical band as before
+    int  bwFork   = bw + 10;       // reuse old width
+    int  spacing  = 10;            // gap between buttons
 
-    if (cvui::button(_canvas, 45, yServo, bw+10, bh, "Fork Up"))
+    auto forkGo = [&](int pos)                 // pos = 1..4
     {
-        gpioServo(_servoGpio, _pulseUp);
-    }
+        unsigned pulse = SERVO_MIN_US + (pos - 1) * SERVO_STEP_US;
+        gpioServo(_servoGpio, pulse);
+    };
 
-    if (cvui::button(_canvas, 125, yServo, bw+10, bh, "Fork Down"))
+    auto forkBtn = [&](int pos, int x, const std::string &label)
     {
-        gpioServo(_servoGpio, _pulseDown);
-    }
+        if (cvui::button(_canvas, x, yServo, bwFork, bh, label))
+            forkGo(pos);
+    };
+
+    /* left-to-right layout */
+    int x0 = 20;
+    forkBtn(1, x0,                       "Fork Pos 1");   /* 0 °   */
+    forkBtn(2, x0 + (bwFork+spacing),    "Fork Pos 2");   /* 60 °  */
+    forkBtn(3, x0 + 2*(bwFork+spacing),  "Fork Pos 3");   /* 120 ° */
+    forkBtn(4, x0 + 3*(bwFork+spacing),  "Fork Pos 4");   /* 180 ° */
 
     /* cmd log */
     cvui::text(_canvas, 300, 20, "CMD Log");
