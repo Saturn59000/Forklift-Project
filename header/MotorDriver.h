@@ -7,16 +7,18 @@ class MotorDriver
 {
 public:
     /* GPIO map defaults for:
-       AIN1=21  AIN2=20  pwmA=16 (left motor)
-       BIN1=8   BIN2=7   pwmB=24 (right motor)
+       AIN1=4  AIN2=3  pwmA=2  (left motor)
+       BIN1=27 BIN2=22 pwmB=10 (right motor)
        STBY=12
     */
-    MotorDriver(); // 0-255
+    MotorDriver(int AIN1=4,  int AIN2=3,  int pwmA=2,
+                int BIN1=27, int BIN2=22, int pwmB=10,
+                int stby=17, int duty=150); // 0-255
 
     void forward();
     void backward();
     void left();
-    void right();                                                                      
+    void right();
     void stop();
     void setSpeed(int duty);
     void tick();               // call every frame for soft‑start/stop

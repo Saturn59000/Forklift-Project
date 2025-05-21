@@ -21,7 +21,6 @@
 constexpr int PORT_FEED = 4618;
 constexpr int PORT_CMD  = 4620;
 
-
 /* ───────────────── Forklift application ───────────────── */
 class CForklift : public CBase4618
 {
@@ -44,7 +43,7 @@ private:
     bool _run_once;
 
     // Servo
-    unsigned _servoGpio = 18;            // GPIO15 → PWM0 pin 12 (you asked for 18)
+    unsigned _servoGpio = 9;        // GPIO9 to J1 on Pi hat
     unsigned SERVO_MIN_US =  500;   // 0 °  absolute minimum
     unsigned SERVO_MAX_US = 2400;   // 180° absolute maximum
     unsigned SERVO_STEP_US = (SERVO_MAX_US - SERVO_MIN_US) / 3;   // equal 60° steps
