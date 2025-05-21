@@ -14,7 +14,7 @@
 class ForkliftGUI
 {
 public:
-    ForkliftGUI(const char* pi_ip = "10.0.0.91",
+    ForkliftGUI(const char* pi_ip = "192.168.137.32",
         int port_cmd = 4620,
         int port_feed = 4618);
     ~ForkliftGUI();

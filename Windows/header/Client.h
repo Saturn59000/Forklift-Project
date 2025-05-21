@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////
-// BCIT ELEX4618 â€“ Reliable TCP client (blocking I/O, 2025-05-15)
+// BCIT ELEX4618 – Reliable TCP client (blocking I/O, 2025-05-15)
 ///////////////////////////////////////////////////////////////////
 #pragma once
 
@@ -39,6 +39,7 @@ public:
     void  tx_str(const std::string& s, double timeout = 0.2);   // blocking / retry
     bool  rx_str(std::string& s, double timeout = 1.0);  // reads one line
     bool  rx_im(cv::Mat& im, double timeout = 1.0);  // JPEG image
+    SOCKET sock() const { return _sock; }
 
 private:
     SOCKET   _sock{ INVALID_SOCKET };
