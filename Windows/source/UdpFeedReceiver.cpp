@@ -1,32 +1,77 @@
 ﻿#include "stdafx.h"
 #include "UdpFeedReceiver.h"
-#pragma comment(lib,"ws2_32")
 
-UdpFeedReceiver::UdpFeedReceiver(uint16_t port)
+#include <chrono>
+#include <thread>
+#include <opencv2/opencv.hpp>
+
+#pragma comment(lib, "ws2_32.lib")
+
+ /* ------------------------------------------------------------------ */
+
+constexpr char HELLO[] = "HELLO";        // 5-byte handshake message
+constexpr int  BUF_SIZE = 70'000;         // fits one JPEG datagram
+
+UdpFeedReceiver::UdpFeedReceiver(int  localPort,
+    const char* piAddr,
+    int  piPort)
 {
-    WSADATA w;  WSAStartup(MAKEWORD(2, 2), &w);
-    _s = socket(AF_INET, SOCK_DGRAM, 0);
+    /*  Initialise Winsock  */
+    WSADATA wsa;
+    WSAStartup(MAKEWORD(2, 2), &wsa);
 
-    sockaddr_in a{}; a.sin_family = AF_INET; a.sin_port = htons(port);
-    a.sin_addr.s_addr = INADDR_ANY;
-    bind(_s, reinterpret_cast<sockaddr*>(&a), sizeof(a));
+    /*  Create UDP socket  */
+    _sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-    u_long nb = 1; ioctlsocket(_s, FIONBIO, &nb);
+    /*  Bind to 0.0.0.0:localPort  */
+    sockaddr_in me{};
+    me.sin_family = AF_INET;
+    me.sin_addr.s_addr = htonl(INADDR_ANY);
+    me.sin_port = htons(localPort);
+    bind(_sock, reinterpret_cast<sockaddr*>(&me), sizeof(me));
+
+    /*  Store Pi address  */
+    _pi.sin_family = AF_INET;
+    _pi.sin_addr.s_addr = inet_addr(piAddr);
+    _pi.sin_port = htons(piPort);
+
+    /*  Make socket non-blocking  */
+    u_long nonBlock = 1;
+    ioctlsocket(_sock, FIONBIO, &nonBlock);
+
+    /*  Handshake so Pi learns our address  */
+    sendto(_sock,
+        HELLO,
+        sizeof(HELLO) - 1,      // send exactly 5 bytes
+        0,
+        reinterpret_cast<sockaddr*>(&_pi),
+        sizeof(_pi));
 }
 
-UdpFeedReceiver::~UdpFeedReceiver() { closesocket(_s); WSACleanup(); }
+/* ------------------------------------------------------------------ */
 
+UdpFeedReceiver::~UdpFeedReceiver()
+{
+    closesocket(_sock);
+    WSACleanup();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Try to grab next frame; returns true if ‘out’ now holds an image. */
 bool UdpFeedReceiver::grab(cv::Mat& out)
 {
-    int n = recv(_s, _buf, sizeof(_buf), 0);
-    if (n <= 4) return false;                 // nothing or too small
+    char tmp[BUF_SIZE];
 
-    uint32_t seq; memcpy(&seq, _buf, 4); seq = ntohl(seq);
-    if (seq <= _lastSeq) return false;        // out‑of‑order / dup
+    int n = recv(_sock,
+        tmp,
+        static_cast<int>(sizeof(tmp)),
+        0);
+    if (n <= 0)
+    {
+        return false;            // no packet this call
+    }
 
-    _lastSeq = seq;
-    std::vector<uchar> jpg(_buf + 4, _buf + n);
-    out = cv::imdecode(jpg, cv::IMREAD_COLOR);
+    _buf.assign(tmp, tmp + n);
+    out = cv::imdecode(_buf, cv::IMREAD_COLOR);
     return !out.empty();
 }
-

@@ -1,30 +1,67 @@
 #include "UdpFeedSender.h"
-#include <unistd.h>
 
-UdpFeedSender::UdpFeedSender(const char* ip, uint16_t port)
+static const int JPEG_QUAL = 65;
+
+void UdpFeedSender::start(int port)
 {
-    _sock = socket(AF_INET, SOCK_DGRAM, 0);
-    _cli.sin_family = AF_INET;
-    _cli.sin_port   = htons(port);
-    inet_pton(AF_INET, ip, &_cli.sin_addr);
+    _th = std::thread(&UdpFeedSender::loop, this, port);
 }
 
-UdpFeedSender::~UdpFeedSender() { if(_sock>=0) close(_sock); }
-
-void UdpFeedSender::send(const cv::Mat& frame)
+void UdpFeedSender::stop()
 {
-    if(frame.empty()) return;
-    cv::Mat small; cv::resize(frame, small, _sz);
+    _exit = true;
+    if (_th.joinable()) _th.join();
+    if (_sock != -1) close(_sock);
+}
+
+void UdpFeedSender::setFrame(const cv::Mat& im)
+{
+    std::lock_guard<std::mutex> lk(_mx);
+    if (!im.empty()) im.copyTo(_frame);
+}
+
+void UdpFeedSender::loop(int port)
+{
+    _sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    sockaddr_in srv{};
+    srv.sin_family      = AF_INET;
+    srv.sin_addr.s_addr = htonl(INADDR_ANY);
+    srv.sin_port        = htons(port);
+    bind(_sock, (sockaddr*)&srv, sizeof(srv));
+
+    /* --- Wait for first “HELLO” from Windows so we know where to stream --- */
+    char buf[8];
+    socklen_t len = sizeof(_clientAddr);
+    while (!_exit && !_haveClient)
+    {
+        int n = recvfrom(_sock, buf, sizeof(buf), MSG_DONTWAIT,
+                         (sockaddr*)&_clientAddr, &len);
+
+        if (n == 4 || n == 5) // accept “HELO” or “HELLO”
+        {
+            _haveClient = true;
+            printf("Handshake from %s:%d (%.*s)\n",
+                   inet_ntoa(_clientAddr.sin_addr),
+                   ntohs(_clientAddr.sin_port), n, buf);
+        }
+        usleep(50'000);
+    }
 
     std::vector<uchar> jpg;
-    cv::imencode(".jpg", small, jpg, _params);
-    if(jpg.size() > 64000) return;  // avoid IP fragmentation
+    std::vector<int> prm{cv::IMWRITE_JPEG_QUALITY, JPEG_QUAL};
 
-    std::vector<uchar> pkt(4 + jpg.size());
-    uint32_t net = htonl(++_seq);
-    memcpy(pkt.data(), &net, 4);
-    memcpy(pkt.data()+4, jpg.data(), jpg.size());
+    while (!_exit)
+    {
+        cv::Mat f;
+        { std::lock_guard<std::mutex> lk(_mx); if (_frame.empty()) { usleep(1'000); continue; }
+          f = _frame.clone();
+        }
 
-    sendto(_sock, pkt.data(), pkt.size(), 0,
-           reinterpret_cast<sockaddr*>(&_cli), sizeof(_cli));
+        cv::imencode(".jpg", f, jpg, prm);
+        if (_haveClient)
+            sendto(_sock, jpg.data(), jpg.size(), 0, (sockaddr*)&_clientAddr, sizeof(_clientAddr));
+
+        usleep(66'000); // ~15 fps
+    }
 }
