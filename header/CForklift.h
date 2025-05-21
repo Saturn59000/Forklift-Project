@@ -21,7 +21,6 @@
 constexpr int PORT_FEED = 4618;
 constexpr int PORT_CMD  = 4620;
 
-
 /* ───────────────── Forklift application ───────────────── */
 class CForklift : public CBase4618
 {
