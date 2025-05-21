@@ -39,14 +39,16 @@ private:
     CServer _srvCmd;
     CAruco _aruco;
     CNavigate _nav;
+    CControlPi _control;
 
     bool _run_once;
 
     // Servo
     unsigned _servoGpio = 9;        // GPIO9 to J1 on Pi hat
-    unsigned SERVO_MIN_US =  500;   // 0 °  absolute minimum
-    unsigned SERVO_MAX_US = 2400;   // 180° absolute maximum
-    unsigned SERVO_STEP_US = (SERVO_MAX_US - SERVO_MIN_US) / 3;   // equal 60° steps
+    unsigned SERVO_MIN_US =  600;   // 0 °  absolute minimum
+    unsigned SERVO_MIN_STEP = 800;
+    unsigned SERVO_MAX_US = 1500;   // 180° absolute maximum
+    unsigned SERVO_STEP_US = 100;   // equal 60° steps
 
     /* vision */
     cv::VideoCapture _cap;

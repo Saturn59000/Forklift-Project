@@ -15,7 +15,6 @@ enum aruco_ids
     PACKAGE2 = 6
 };
 
-
 CForklift::CForklift()
 {
     _canvas = cv::Mat(cv::Size(500, 380), CV_8UC3);
@@ -35,15 +34,27 @@ CForklift::CForklift()
     std::thread([&]{ _srvCmd .start(PORT_CMD ); }).detach();
 }
 
-
 CForklift::~CForklift()
 {
-    _drive.stop();
-    _srvCmd.stop();
-    if (_cap.isOpened()) _cap.release();
-    cv::destroyAllWindows();
-    gpioTerminate();
-    gpioServo(_servoGpio, 0);   // turn PWM off
+    std::cout << "STOPING MOTORS" << std::endl;
+    _drive.stop();             // stop motors
+    std::cout << "Stop command thread" << std::endl;
+    _srvCmd.stop();            // stop command thread
+    std::cout << "Stop video thread" << std::endl;
+    _udp.stop();               // stop video thread and close socket
+
+    std::cout << "stop cam" << std::endl;
+    if (_cap.isOpened())       // stop camera
+        _cap.release();
+
+    std::cout << "stop pwm" << std::endl;
+    gpioServo(_servoGpio, 0);  // stop PWM output
+    std::cout << "Terminate pigpio" << std::endl;
+    usleep(200000); // 200 ms
+    gpioTerminate();           // then terminate pigpio
+    std::cout << "Destroy windows" << std::endl;
+    cv::destroyAllWindows();   // finally, GUI
+    std::cout << "shutdown completed" << std::endl;
 }
 
 
@@ -244,7 +255,16 @@ void CForklift::draw()
 
     auto forkGo = [&](int pos)                 // pos = 1..4
     {
-        unsigned pulse = SERVO_MIN_US + (pos - 1) * SERVO_STEP_US;
+        int pulse;
+        switch(pos)
+        {
+            case(1):
+                pulse = 1000;
+                break;
+            case(2):
+                pulse = 1300;
+                break;
+        }
         gpioServo(_servoGpio, pulse);
     };
 
