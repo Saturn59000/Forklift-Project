@@ -26,7 +26,8 @@ CForklift::CForklift()
         throw std::runtime_error("pigpio init failed");
     }
 
-    _cap.open(0);
+    //_cap.open(0);
+    _cap.open("libcamerasrc ! videoconvert ! appsink", cv::CAP_GSTREAMER);
 
     gpioSetMode(_servoGpio, PI_OUTPUT);
     gpioServo(_servoGpio, SERVO_MIN_US);   // start in “Down” position
@@ -117,9 +118,9 @@ void CForklift::update()
     _cap.read(_frame);
 
     // Comment out the three below lines if you don't want rotation
-    cv::Mat no_rotate;
-    _cap >> no_rotate;
-    cv::rotate(no_rotate, _frame, cv::ROTATE_180);
+    //cv::Mat no_rotate;
+    //_cap >> no_rotate;
+    //cv::rotate(no_rotate, _frame, cv::ROTATE_180);
     }
 
     if (!_frame.empty())
