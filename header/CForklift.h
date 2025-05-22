@@ -45,7 +45,7 @@ private:
 
     // Servo
     unsigned _servoGpio = 9;        // GPIO9 to J1 on Pi hat
-    unsigned SERVO_MIN_US =  600;   // 0 °  absolute minimum
+    unsigned SERVO_MIN_US =  700;   // 0 °  absolute minimum
     unsigned SERVO_MIN_STEP = 800;
     unsigned SERVO_MAX_US = 1500;   // 180° absolute maximum
     unsigned SERVO_STEP_US = 100;   // equal 60° steps

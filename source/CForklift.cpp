@@ -130,7 +130,7 @@ void CForklift::update()
     // Comment out the three below lines if you don't want rotation
     cv::Mat no_rotate;
     _cap >> no_rotate;
-    cv::rotate(no_rotate, _frame, cv::ROTATE_180);
+    cv::rotate(no_rotate, _frame, cv::ROTATE_90_CLOCKWISE);
     }
 
     if (!_frame.empty())
@@ -256,13 +256,23 @@ void CForklift::draw()
     auto forkGo = [&](int pos)                 // pos = 1..4
     {
         int pulse;
+        int pulse1 = 750;
+        int pulse2 = 1290;
+        int gap = 75;
+        
         switch(pos)
         {
             case(1):
-                pulse = 1000;
+                pulse = pulse1;
                 break;
             case(2):
-                pulse = 1300;
+                pulse = pulse1 + gap;
+                break;
+            case(3):
+                pulse = pulse2;
+                break;
+            case(4):
+                pulse = pulse2 + gap;
                 break;
         }
         gpioServo(_servoGpio, pulse);
