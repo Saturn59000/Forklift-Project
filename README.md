@@ -1,9 +1,9 @@
-﻿# Forklift-Project
+﻿# Forklift Project for ELEX4699
 
-This is a raspberry-pi opencv-based project for BCIT's ELEX 4699 electrical system design course.
+# Background
+This is a project repository for BCIT's ELEX 4699 electrical system design course. The code in this repository is raspberry-pi and opencv-based.
 
-The given challenge was to sort as many 40mm x 40mm 3D printed packages as possible with a robot forklift, automatically using opencv and ArUco markers, aswell as manually while controlling over the network. The sorting must be done in under two and a half minutes and each box sorted contributes to the final grade of the class. 
+# Problem
+The given challenge was for each 2 team group to sort small 3D printed packages from one side of a 46in x 46in arena to the other using a robot. The design of the robot was left completely up to the team, with the only constraint being that the robot must fit into a 8in x 7in sqare in the beginning. Light sensors were used to monitor if the robot exceeded this limit. The robot can be ran manually or autonomously and had 2.5 minutes to sort as many of these packages as possible.
 
-This code controls a mini forklift designed by our team, and our first goal is to get the forklift to sort a box automatically within two and a half minutes. We then hope to optimize this to be able to sort multiple packages within this timeframe.
-
-Enjoy!
+# Our Design
